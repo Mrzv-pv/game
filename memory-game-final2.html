@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игра "Найди пары игроков NK Celje"</title>
+    <style>
+        /* Общие стили */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        
+        /* Контейнер игры */
+        .game-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff9e0;
+            border: 4px solid #ffd700;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Заголовок */
+        .game-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .game-title {
+            color: #0052a5;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .team-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0052a5;
+            font-weight: bold;
+        }
+        
+        .logo-placeholder {
+            width: 30px;
+            height: 30px;
+            background-color: #0052a5;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        /* Стартовый экран */
+        .start-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .start-text {
+            color: #0052a5;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+        
+        /* Игровой экран */
+        .game-screen {
+            display: none;
+        }
+        
+        /* Статистика */
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        /* Игровая доска */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .board {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .board {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        /* Карточки */
+        .card {
+            height: 200px; /* Увеличенная высота карточки */
+            background-color: #0052a5;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 3/4; /* Прямоугольное соотношение сторон */
+        }
+        
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.5s;
+        }
+        
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+        }
+        
+        .card-front {
+            background-color: #0052a5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 24px;
+        }
+        
+        .card-back {
+            transform: rotateY(180deg);
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .card-image {
+            height: 170px; /* Увеличиваем высоту области для изображения */
+            background-size: cover;
+            background-position: top center; /* Позиционирование изображения сверху по центру */
+            background-repeat: no-repeat;
+        }
+        
+        .card-name {
+            padding: 5px;
+            text-align: center;
+            background-color: #ffd700;
+            color: #0052a5;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Сообщение о победе */
+        .win-message {
+            display: none;
+            text-align: center;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #ffd700;
+            color: #0052a5;
+            border-radius: 5px;
+        }
+        
+        .win-title {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        /* Кнопка */
+        .button {
+            display: block;
+            width: 200px;
+            padding: 12px;
+            margin: 0 auto;
+            background-color: #0052a5;
+            color: white;
+            border: 2px solid #ffd700;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        
+        .button:hover {
+            background-color: #003b7a;
+        }
+        
+        /* Стили для совпавших карточек */
+        .card.matched .card-back::after {
+            content: "✓";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(76, 175, 80, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Заголовок -->
+        <header class="game-header">
+            <h1 class="game-title">Najdi igralce NK Celje</h1>
+            <div class="team-info">
+                <div class="logo-placeholder"></div>
+                <span>Uradna ekipa 2024/2025</span>
+            </div>
+        </header>
+        
+        <!-- Стартовый экран -->
+        <div id="startScreen" class="start-screen">
+            <p class="start-text">Poiščite pare enakih igralcev NK Celje tako, da si zapomnite njihove položaje.</p>
+            <button id="startButton" class="button">Začni igro</button>
+        </div>
+        
+        <!-- Игровой экран -->
+        <div id="gameScreen" class="game-screen">
+            <div class="stats">
+                <div id="movesCounter">Poteze: 0</div>
+                <div id="pairsCounter">Najdeni pari: 0/0</div>
+            </div>
+            
+            <div id="gameBoard" class="board">
+                <!-- Карточки будут добавлены с помощью JavaScript -->
+            </div>
+            
+            <div id="winMessage" class="win-message">
+                <h2 class="win-title">Čestitamo!</h2>
+                <p>Našli ste vse igralce NK Celje v <span id="finalMoves">0</span> potezah!</p>
+            </div>
+            
+            <button id="restartButton" class="button">Začni znova</button>
+        </div>
+    </div>
+
+    <script>
+        // РУССКИЙ КОММЕНТАРИЙ: Универсальный код для разных браузеров
+        (function() {
+            // РУССКИЙ КОММЕНТАРИЙ: Здесь вы можете заменить URL-адреса на ваши собственные фотографии
+            // РУССКИЙ КОММЕНТАРИЙ: Просто замените значения в поле 'image' для каждого игрока
+            var players = [
+                { name: 'Žan Karničnik', image: 'https://www.nk-celje.si/cache/thumbs/59cb7eb976998a0a30d257ce/400x400-r1/karnicnik-1.png' },
+                { name: 'Juanjo Nieto', image: 'https://www.nk-celje.si/cache/thumbs/59cb7eb976998a0a30d257ce/400x400-r1/photo_Domen_Jancic_-2072.jpg' },
+                { name: 'Svit Sešlar', image: 'https://www.nk-celje.si/cache/thumbs/59cb7eb976998a0a30d257ce/400x400-r1/photo_Domen_Jancic_-2498.jpg' },
+                { name: 'Mario Kvesić', image: 'https://www.nk-celje.si/cache/thumbs/59cb7eb976998a0a30d257ce/400x400-r1/photo_Domen_Jancic_-3886.jpg' },
+                { name: 'Inigo Eguaras', image: 'https://www.nk-celje.si/cache/thumbs/59cb7eb976998a0a30d257ce/400x400-r1/eguaras.png' },
+                { name: 'Mark Zabukovnik', image: 'https://www.nk-celje.si/cache/thumbs/59cb7eb976998a0a30d257ce/400x400-r1/Mark_Zabukovnik.jpg' },
+                { name: 'Egor Prutsev', image: 'https://www.nk-celje.si/cache/thumbs/59cb7eb976998a0a30d257ce/400x400-r1/prutsi.png' },
+                { name: 'Armandas Kučys', image: 'https://www.nk-celje.si/cache/thumbs/59cb7eb976998a0a30d257ce/400x400-r1/Armandas_Kucys.jpg' },
+                { name: 'Matjaž Rozman', image: 'https://www.nk-celje.si/cache/thumbs/59cb7eb976998a0a30d257ce/400x400-r1/Matjaz_Rozman-1.jpg' },
+                { name: 'Aljoša Matko', image: 'https://www.nk-celje.si/cache/thumbs/59cb7eb976998a0a30d257ce/400x400-r1/Aljosa_Matko.jpg' }
+            ];
+            
+            // Переменные для игры
+            var cards = [];
+            var flippedCards = [];
+            var matchedPairs = [];
+            var moves = 0;
+            
+            // Функция для получения элемента по ID (совместимость со старыми браузерами)
+            function getById(id) {
+                return document.getElementById(id);
+            }
+            
+            // Получаем основные элементы
+            var startScreen, gameScreen, gameBoard, movesCounter, pairsCounter, winMessage, finalMoves;
+            
+            // Инициализация DOM-элементов
+            function initElements() {
+                startScreen = getById('startScreen');
+                gameScreen = getById('gameScreen');
+                gameBoard = getById('gameBoard');
+                movesCounter = getById('movesCounter');
+                pairsCounter = getById('pairsCounter');
+                winMessage = getById('winMessage');
+                finalMoves = getById('finalMoves');
+            }
+            
+            // Добавление обработчика события с поддержкой старых браузеров
+            function addEvent(el, evt, fn) {
+                if (el.addEventListener) {
+                    el.addEventListener(evt, fn, false);
+                } else if (el.attachEvent) {
+                    el.attachEvent('on' + evt, fn);
+                } else {
+                    el['on' + evt] = fn;
+                }
+            }
+            
+            // Функция инициализации игры
+            function initGame() {
+                // Сбрасываем переменные
+                cards = [];
+                flippedCards = [];
+                matchedPairs = [];
+                moves = 0;
+                
+                // Обновляем интерфейс
+                movesCounter.innerHTML = 'Poteze: ' + moves;
+                pairsCounter.innerHTML = 'Najdeni pari: 0/' + players.length;
+                winMessage.style.display = 'none';
+                
+                // Очищаем доску
+                gameBoard.innerHTML = '';
+                
+                // Создаем двойной набор карточек и перемешиваем их
+                var cardPairs = [];
+                for (var i = 0; i < players.length; i++) {
+                    // Добавляем по две карточки для каждого игрока
+                    cardPairs.push({ player: players[i], id: Math.random() });
+                    cardPairs.push({ player: players[i], id: Math.random() });
+                }
+                
+                // Перемешиваем карточки
+                cardPairs.sort(function() {
+                    return Math.random() - 0.5;
+                });
+                
+                // Создаем DOM-элементы для карточек
+                for (var j = 0; j < cardPairs.length; j++) {
+                    (function(index, cardData) {
+                        var card = document.createElement('div');
+                        card.className = 'card';
+                        card.innerHTML = 
+                            '<div class="card-inner">' +
+                                '<div class="card-front">NK</div>' +
+                                '<div class="card-back">' +
+                                    '<div class="card-image" style="background-image: url(\'' + cardData.player.image + '\'); background-position: top center;"></div>' +
+                                    '<div class="card-name">' + cardData.player.name + '</div>' +
+                                '</div>' +
+                            '</div>';
+                        
+                        // Добавляем обработчик клика
+                        addEvent(card, 'click', function() {
+                            flipCard(index, card, cardData);
+                        });
+                        
+                        // Добавляем карточку на доску
+                        gameBoard.appendChild(card);
+                        
+                        // Сохраняем информацию о карточке
+                        cards[index] = {
+                            element: card,
+                            player: cardData.player,
+                            flipped: false,
+                            matched: false
+                        };
+                    })(j, cardPairs[j]);
+                }
+                
+                // Показываем игровой экран
+                startScreen.style.display = 'none';
+                gameScreen.style.display = 'block';
+            }
+            
+            // Функция для переворачивания карточки
+            function flipCard(index, cardElement, cardData) {
+                // Проверяем, можно ли перевернуть карточку
+                if (
+                    cards[index].flipped || // Карточка уже перевернута
+                    cards[index].matched || // Карточка уже найдена
+                    flippedCards.length >= 2 // Уже перевернуты две карточки
+                ) {
+                    return;
+                }
+                
+                // Переворачиваем карточку
+                cardElement.classList.add('flipped');
+                cards[index].flipped = true;
+                flippedCards.push(index);
+                
+                // Если перевернуты две карточки
+                if (flippedCards.length === 2) {
+                    // Увеличиваем счетчик ходов
+                    moves++;
+                    movesCounter.innerHTML = 'Poteze: ' + moves;
+                    
+                    var firstCardIndex = flippedCards[0];
+                    var secondCardIndex = flippedCards[1];
+                    
+                    // Проверяем, совпадают ли карточки
+                    if (cards[firstCardIndex].player.name === cards[secondCardIndex].player.name) {
+                        // Совпадение найдено
+                        setTimeout(function() {
+                            cards[firstCardIndex].element.classList.add('matched');
+                            cards[secondCardIndex].element.classList.add('matched');
+                            
+                            cards[firstCardIndex].matched = true;
+                            cards[secondCardIndex].matched = true;
+                            
+                            // Добавляем пару в список совпавших
+                            matchedPairs.push(cards[firstCardIndex].player.name);
+                            
+                            // Обновляем счетчик найденных пар
+                            pairsCounter.innerHTML = 'Najdeni pari: ' + matchedPairs.length + '/' + players.length;
+                            
+                            // Очищаем массив перевернутых карточек
+                            flippedCards = [];
+                            
+                            // Проверяем, выиграна ли игра
+                            checkWin();
+                        }, 500);
+                    } else {
+                        // Карточки не совпадают
+                        setTimeout(function() {
+                            // Переворачиваем карточки обратно
+                            cards[firstCardIndex].element.classList.remove('flipped');
+                            cards[secondCardIndex].element.classList.remove('flipped');
+                            
+                            cards[firstCardIndex].flipped = false;
+                            cards[secondCardIndex].flipped = false;
+                            
+                            // Очищаем массив перевернутых карточек
+                            flippedCards = [];
+                        }, 1000);
+                    }
+                }
+            }
+            
+            // Функция проверки победы
+            function checkWin() {
+                if (matchedPairs.length === players.length) {
+                    // Все пары найдены
+                    finalMoves.innerHTML = moves;
+                    winMessage.style.display = 'block';
+                }
+            }
+            
+            // Инициализация игры при загрузке страницы
+            function initialize() {
+                initElements();
+                
+                // Привязываем обработчики к кнопкам
+                addEvent(getById('startButton'), 'click', initGame);
+                addEvent(getById('restartButton'), 'click', initGame);
+            }
+            
+            // Запускаем инициализацию при загрузке страницы
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                setTimeout(initialize, 1);
+            } else {
+                addEvent(window, 'DOMContentLoaded', initialize);
+                addEvent(window, 'load', initialize);
+            }
+        })();
+    </script>
+</body>
+</html>
